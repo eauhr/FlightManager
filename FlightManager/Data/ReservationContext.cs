@@ -87,7 +87,10 @@ namespace FlightManager.Data
                     .Take(pageSize)
                     .ToListAsync();
             }
-            catch (Exception ex) { throw ex; }
+            catch (Exception ex) 
+            {
+                throw ex;
+            }
         }
 
         public async Task<int> GetCountAsync(string? email)
