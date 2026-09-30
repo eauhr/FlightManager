@@ -1,28 +1,24 @@
 ﻿using FlightManager.Data;
 using FlightManager.Models;
-using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using FlightManager.Services.ExternalFlights;
 
 namespace FlightManager.Controllers
 {
     public class FlightsController : Controller
     {
         private readonly FlightContext flightcontext;
+        private readonly IFlightSearchService flightSearchService;
 
-        public FlightsController(FlightContext flightcontext)
+        public FlightsController(FlightContext flightcontext, IFlightSearchService flightSearchService)
         {
             this.flightcontext = flightcontext;
+            this.flightSearchService = flightSearchService;
         }
 
         // GET: Flights
-        [Authorize]
         public async Task<IActionResult> Index(string? from, string? to, int page = 1, int pageSize = 10)
         {
             IEnumerable<Flight> flights = await flightcontext.GetFilteredAsync(from, to, page, pageSize);
@@ -38,7 +34,7 @@ namespace FlightManager.Controllers
         }
 
         // GET: Flights/Details/5
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Details(int? id, int page = 1)
         {
             if (id == null) return NotFound();
@@ -71,21 +67,30 @@ namespace FlightManager.Controllers
         }
 
         // POST: Flights/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,DepartureCity,ArrivalCity,DepartureTime,ArrivalTime,PlaneType,PlaneNumber,PilotName,PassengersCapacity,BusinessClassCapacity")] Flight flight)
+        public async Task<IActionResult> Create(
+            [Bind("Id,DepartureCity,ArrivalCity,DepartureTime,ArrivalTime,PlaneType,PlaneNumber,PilotName,PassengersCapacity,BusinessClassCapacity")]
+            Flight flight)
         {
             if (flight.ArrivalTime <= flight.DepartureTime)
                 ModelState.AddModelError("ArrivalTime", "Arrival time must be after departure time.");
 
-            if (!ModelState.IsValid) 
+            if (!ModelState.IsValid)
                 return View(flight);
 
-            await flightcontext.CreateAsync(flight);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await flightcontext.CreateAsync(flight);
+                TempData["Success"] = $"Flight {flight.PlaneNumber} from {flight.DepartureCity} to {flight.ArrivalCity} created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError("PlaneNumber", "A flight with that plane number already exists.");
+                return View(flight);
+            }
         }
 
         // GET: Flights/Edit/5
@@ -94,29 +99,45 @@ namespace FlightManager.Controllers
         {
             if (id == null) return NotFound();
 
-            var flight = await flightcontext.ReadAsync(id.Value);
+            Flight flight = await flightcontext.ReadAsync(id.Value);
             if (flight == null) return NotFound();
 
             return View(flight);
         }
 
         // POST: Flights/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,DepartureCity,ArrivalCity,DepartureTime,ArrivalTime,PlaneType,PlaneNumber,PilotName,PassengersCapacity,BusinessClassCapacity")] Flight flight)
+        public async Task<IActionResult> Edit(int id,
+            [Bind("Id,DepartureCity,ArrivalCity,DepartureTime,ArrivalTime,PlaneType,PlaneNumber,PilotName,PassengersCapacity,BusinessClassCapacity")]
+            Flight flight)
         {
             if (id != flight.Id) return NotFound();
 
             if (flight.ArrivalTime <= flight.DepartureTime)
                 ModelState.AddModelError("ArrivalTime", "Arrival time must be after departure time.");
 
-            if (!ModelState.IsValid) return View(flight);
+            if (!ModelState.IsValid)
+                return View(flight);
 
-            await flightcontext.UpdateAsync(flight);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await flightcontext.UpdateAsync(flight);
+                TempData["Success"] = $"Flight {flight.PlaneNumber} updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!flightcontext.Exists(flight.Id))
+                    return NotFound();
+                throw;
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError("PlaneNumber", "A flight with that plane number already exists.");
+                return View(flight);
+            }
         }
 
         // GET: Flights/Delete/5
@@ -125,7 +146,7 @@ namespace FlightManager.Controllers
         {
             if (id == null) return NotFound();
 
-            var flight = await flightcontext.ReadAsync(id.Value);
+            Flight flight = await flightcontext.ReadAsync(id.Value);
             if (flight == null) return NotFound();
 
             return View(flight);
@@ -137,9 +158,20 @@ namespace FlightManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await flightcontext.DeleteAsync(id);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                Flight flight = await flightcontext.ReadAsync(id);
+                await flightcontext.DeleteAsync(id);
+                TempData["Success"] = $"Flight {flight.PlaneNumber} deleted.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
         }
 
     }
+
 }

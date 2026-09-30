@@ -15,32 +15,6 @@ namespace FlightManager.Data
             this.userManager = userManager;
         }
 
-        #region Seeding
-
-        public async Task SeedDataAsync(string adminPass, string adminEmail)
-        {
-            int userRoles = await context.UserRoles.CountAsync();
-
-            if (userRoles == 0)
-            {
-                await ConfigureAdminAccountAsync(adminPass, adminEmail);
-            }
-        }
-
-        public async Task ConfigureAdminAccountAsync(string password, string email)
-        {
-            User adminUser = await context.Users.FirstOrDefaultAsync();
-
-            if (adminUser != null)
-            {
-                await userManager.AddToRoleAsync(adminUser, "Admin");
-                await userManager.AddPasswordAsync(adminUser, password);
-                await userManager.SetEmailAsync(adminUser, email);
-            }
-        }
-
-        #endregion
-
         #region CRUD
 
         public async Task CreateUserAsync(string username, string password, string email,
@@ -76,33 +50,18 @@ namespace FlightManager.Data
 
         public async Task<User> ReadUserAsync(string id)
         {
-            try
-            {
                 return await userManager.FindByIdAsync(id);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
 
         public async Task<IEnumerable<User>> ReadAllUsersAsync()
         {
-            try
-            {
+            
                 return await context.Users.ToListAsync();
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
 
         public async Task<IEnumerable<User>> GetFilteredAsync(string? email, string? username,
             string? firstName, string? lastName, int page, int pageSize)
         {
-            try
-            {
                 var query = context.Users.AsQueryable();
 
                 if (!string.IsNullOrEmpty(email))
@@ -122,19 +81,12 @@ namespace FlightManager.Data
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
 
         public async Task<int> GetCountAsync(string? email, string? username,
             string? firstName, string? lastName)
         {
-            try
-            {
-                var query = context.Users.AsQueryable();
+            var query = context.Users.AsQueryable();
 
                 if (!string.IsNullOrEmpty(email))
                     query = query.Where(u => u.Email.Contains(email));
@@ -149,18 +101,12 @@ namespace FlightManager.Data
                     query = query.Where(u => u.LastName.Contains(lastName));
 
                 return await query.CountAsync();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
 
         public async Task UpdateUserAsync(string id, string username, string email,
             string firstName, string lastName, string egn, string address, string phoneNumber)
         {
-            try
-            {
+           
                 User user = await userManager.FindByIdAsync(id);
 
                 if (user == null)
@@ -179,16 +125,10 @@ namespace FlightManager.Data
                 if (!result.Succeeded)
                     throw new ArgumentException(result.Errors.First().Description);
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+        
 
         public async Task DeleteUserAsync(string id)
         {
-            try
-            {
                 User user = await userManager.FindByIdAsync(id);
 
                 if (user == null)
@@ -198,23 +138,12 @@ namespace FlightManager.Data
 
                 if (!result.Succeeded)
                     throw new ArgumentException(result.Errors.First().Description);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
         }
 
         public async Task<User> FindUserByNameAsync(string username)
         {
-            try
-            {
-                return await userManager.FindByNameAsync(username);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            
+                return await userManager.FindByNameAsync(username);     
         }
 
         #endregion

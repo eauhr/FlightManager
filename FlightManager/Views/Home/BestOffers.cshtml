@@ -1,0 +1,13 @@
+@model AirScoutBestOffersViewModel
+@{
+    ViewData["Title"] = "Flight Deals";
+}
+
+<section class="results-hero reveal">
+    <p class="eyebrow">Flight Deals</p>
+    <h1>Deals are not available yet</h1>
+    <p class="hero-copy">
+        There are no live deals available yet. Search a route to compare current flight options instead.
+    </p>
+    <a asp-controller="Home" asp-action="Index" class="action-button">Search live flights</a>
+</section>

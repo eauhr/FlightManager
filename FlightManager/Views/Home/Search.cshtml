@@ -1,0 +1,176 @@
+@model AirScoutSearchResultsViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Flight results";
+    string route = $"{Model.Request.Origin} to {Model.Request.Destination}";
+    string generatedAt = Model.GeneratedAtUtc.ToLocalTime().ToString("MMM d, HH:mm", CultureInfo.InvariantCulture);
+}
+
+<section class="search-experience">
+    <header class="search-hero">
+        <div class="search-hero-overlay"></div>
+        <div class="search-hero-content reveal">
+            <p class="hero-kicker">Your flight results</p>
+            <h1>Find the right flight for your trip.</h1>
+            <p>Live prices and itineraries ranked around the way you want to travel.</p>
+        </div>
+    </header>
+
+    <section class="route-summary reveal" aria-label="Search summary">
+        <div>
+            <p class="route-label">Route</p>
+            <h2>@Model.Request.Origin <span>→</span> @Model.Request.Destination</h2>
+            <p>@Model.Request.DepartDate.ToString("ddd, d MMM", CultureInfo.InvariantCulture) · @Model.Request.Passengers passenger@(Model.Request.Passengers == 1 ? "" : "s")</p>
+        </div>
+        <details class="modify-search">
+            <summary>Modify search</summary>
+            <form method="get" asp-action="Search" asp-controller="Home" class="airscout-form route-editor">
+                <input class="client-time-zone" type="hidden" name="ClientTimeZoneId" value="@Model.Request.ClientTimeZoneId" />
+                <label class="field-block">
+                    <span>From</span>
+                    <div class="airport-autocomplete">
+                        <input type="text" id="originDisplay" autocomplete="off" value="@Model.Request.Origin" placeholder="Airport or city" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="originSuggestions" required />
+                        <input type="hidden" id="origin" name="Origin" value="@Model.Request.Origin" />
+                        <div id="originSuggestions" class="airport-suggestions" role="listbox"></div>
+                    </div>
+                </label>
+                <label class="field-block">
+                    <span>To</span>
+                    <div class="airport-autocomplete">
+                        <input type="text" id="destinationDisplay" autocomplete="off" value="@Model.Request.Destination" placeholder="Airport or city" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destinationSuggestions" required />
+                        <input type="hidden" id="destination" name="Destination" value="@Model.Request.Destination" />
+                        <div id="destinationSuggestions" class="airport-suggestions" role="listbox"></div>
+                    </div>
+                </label>
+                <label class="field-block"><span>Depart</span><input id="DepartDate" type="date" data-traveler-date name="DepartDate" value="@Model.Request.DepartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" required /></label>
+                <label class="field-block"><span>Return</span><input id="ReturnDate" type="date" data-return-date name="ReturnDate" value="@(Model.Request.ReturnDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" /></label>
+                <label class="field-block"><span>Passengers</span><input type="number" name="Passengers" min="1" max="9" value="@Model.Request.Passengers" required /></label>
+                <div class="field-block priority-field">
+                    <span>Ranking</span>
+                    <div class="priority-selector" role="radiogroup" aria-label="Ranking priority">
+                        @foreach (AirScoutPriority priority in Enum.GetValues<AirScoutPriority>())
+                        {
+                            <label class="priority-chip">
+                                <input type="radio" name="Priority" value="@priority" checked="@(Model.Request.Priority == priority ? "checked" : null)" class="sr-only" />
+                                <span class="chip-text">@(priority == AirScoutPriority.BestValue ? "Best Value" : priority)</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+                <button type="submit" class="search-button">Search flights</button>
+            </form>
+        </details>
+    </section>
+
+    <section class="results-workspace">
+        <aside class="live-details reveal">
+            <p class="sidebar-label">Live flight options</p>
+            <strong>@Model.LiveFlightOptions</strong>
+            <p class="sidebar-copy">Results supplied by Google Flights data. Updated @generatedAt.</p>
+            <dl>
+                <div><dt>Ranking</dt><dd>@Model.Request.Priority</dd></div>
+                <div><dt>Departure</dt><dd>@Model.Request.DepartDate.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</dd></div>
+                @if (Model.Request.ReturnDate.HasValue)
+                {
+                    <div><dt>Return</dt><dd>@Model.Request.ReturnDate.Value.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</dd></div>
+                }
+            </dl>
+            <p class="ranking-note">Flights are ranked by fare, duration, and number of stops.</p>
+        </aside>
+
+        <div class="flight-results">
+            <div class="results-heading reveal">
+                <div><p class="sidebar-label">@route</p><h2>Available flights</h2></div>
+                <span>@Model.LiveFlightOptions option@(Model.LiveFlightOptions == 1 ? "" : "s")</span>
+            </div>
+
+            <form method="get" asp-action="Search" asp-controller="Home" class="results-ranking reveal" data-submit-on-change>
+                <input type="hidden" name="Origin" value="@Model.Request.Origin" />
+                <input type="hidden" name="Destination" value="@Model.Request.Destination" />
+                <input type="hidden" name="DepartDate" value="@Model.Request.DepartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+                <input type="hidden" name="ReturnDate" value="@(Model.Request.ReturnDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" />
+                <input type="hidden" name="Passengers" value="@Model.Request.Passengers" />
+                <input class="client-time-zone" type="hidden" name="ClientTimeZoneId" value="@Model.Request.ClientTimeZoneId" />
+                <span class="ranking-prompt">Sort flights</span>
+                <div class="priority-selector" role="radiogroup" aria-label="Sort flights by">
+                    @foreach (AirScoutPriority priority in Enum.GetValues<AirScoutPriority>())
+                    {
+                        <label class="priority-chip">
+                            <input type="radio" name="Priority" value="@priority" checked="@(Model.Request.Priority == priority ? "checked" : null)" class="sr-only" />
+                            <span class="chip-text">@(priority == AirScoutPriority.BestValue ? "Best Value" : priority)</span>
+                        </label>
+                    }
+                </div>
+            </form>
+
+            @if (Model.Flights.Count == 0)
+            {
+                <section class="empty-state reveal">
+                    <h2>No live flights found</h2>
+                    <p>No live options were returned for @route on @Model.Request.DepartDate.ToString("MMMM d", CultureInfo.InvariantCulture).</p>
+                    <a asp-controller="Home" asp-action="Index" class="action-button">Start another search</a>
+                </section>
+            }
+            else
+            {
+                <div class="rank-explainer reveal">
+                    <span class="active">@Model.Request.Priority</span>
+                    <p>@Model.InsightLine</p>
+                </div>
+                <div class="reference-flight-list">
+                    @foreach (AirScoutFlightOptionViewModel flight in Model.Flights)
+                    {
+                        <article class="reference-flight-card @(flight.Rank == 1 ? "is-top-result" : "") reveal">
+                            <div class="flight-rank"><span>@(string.IsNullOrWhiteSpace(flight.RankLabel) ? $"#{flight.Rank}" : flight.RankLabel)</span></div>
+                            <div class="airline-cell"><strong>@flight.Airline</strong><small>@flight.FlightCode · @flight.CabinClass</small></div>
+                            <div class="journey-cell">
+                                <div class="flight-times"><strong>@flight.DepartureTime.ToString("HH:mm")</strong><span></span><strong>@flight.ArrivalTime.ToString("HH:mm")</strong></div>
+                                <div class="flight-route"><span>@Model.Request.Origin</span><em>@((int)flight.TotalTravelTime.TotalHours)h @flight.TotalTravelTime.Minutes.ToString("00")m</em><span>@Model.Request.Destination</span></div>
+                            </div>
+                            <div class="stops-cell">@(flight.Stops == 0 ? "Nonstop" : $"{flight.Stops} stop{(flight.Stops == 1 ? "" : "s")}")</div>
+                            <div class="price-cell"><strong>@flight.FormattedPrice</strong><small>Rank score @flight.AeroMetricScore.ToString("0", CultureInfo.InvariantCulture)</small></div>
+                            <div class="booking-cell">
+                                @if (!string.IsNullOrWhiteSpace(flight.BookingToken))
+                                {
+                                    <form method="post" asp-controller="Home" asp-action="Book">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="bookingToken" value="@flight.BookingToken" />
+                                        <button type="submit" class="book-flight-button">Select flight</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button type="button" class="book-flight-button" disabled>Unavailable</button>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</section>
+
+<style>
+    .search-experience { overflow: hidden; padding-bottom: 2rem; }
+    .search-hero { position: relative; isolation: isolate; min-height: 290px; display: grid; place-items: center; overflow: hidden; background: linear-gradient(180deg, #fff 0%, #f0f7fb 100%); }
+    .search-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 120%, rgba(96,181,224,.13), transparent 58%); }
+    .search-hero-overlay { position: absolute; inset: auto -10% -38% 35%; z-index: -1; height: 180px; border-radius: 50%; background: rgba(104,209,255,.12); filter: blur(20px); transform: rotate(-9deg); }
+    .search-hero-content { width: min(100% - 3rem, 1100px); text-align: center; color: #171b36; }
+    .hero-kicker, .sidebar-label, .route-label { margin: 0; color: #28779f; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .search-hero h1 { max-width: 720px; margin: .7rem auto; color: #171b36; font-size: clamp(2rem, 4.7vw, 4rem); letter-spacing: -.055em; line-height: 1; }
+    .search-hero p:not(.hero-kicker) { margin: 0 auto; max-width: 520px; color: #687486; }
+    .route-summary { width: min(100% - 2rem, 1120px); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin: -44px auto 0; padding: 1.25rem 1.5rem; position: relative; border: 1px solid #e7edf3; border-radius: 1rem; background: rgba(255,255,255,.98); box-shadow: 0 14px 40px rgba(8,34,56,.14); }
+    .route-summary h2 { margin: .2rem 0; font-size: 1.25rem; letter-spacing: -.03em; }.route-summary h2 span { color: #17b6ee; }.route-summary p { margin: 0; color: var(--slate-500); font-size: .85rem; }
+    .modify-search { margin-left: auto; }
+    .modify-search[open] { flex: 1 1 100%; width: 100%; }
+    .modify-search summary { list-style: none; cursor: pointer; border: 1px solid #cbd8e5; border-radius: .5rem; padding: .55rem .8rem; font-weight: 700; font-size: .8rem; color: var(--slate-700); }.modify-search summary::-webkit-details-marker { display: none; }.modify-search[open] summary { margin-bottom: .25rem; }
+    .route-editor { position: static; z-index: 20; width: 100%; margin-top: .6rem; padding: 1rem; border: 1px solid #dbe4ed; border-radius: .8rem; background: white; box-shadow: 0 8px 22px rgba(8,34,56,.08); }
+    .results-workspace { width: min(100% - 2rem, 1120px); display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 1.25rem; margin: 1.5rem auto 0; }
+    .live-details { align-self: start; padding: 1.1rem; border: 1px solid #e1e9f0; border-radius: .8rem; background: #fff; }.live-details > strong { display: block; margin: .15rem 0; color: #0a75a9; font-size: 2rem; line-height: 1; }.sidebar-copy { color: var(--slate-500); font-size: .78rem; }.live-details dl { margin: 1rem 0; }.live-details dl div { display: flex; justify-content: space-between; gap: .5rem; padding: .55rem 0; border-top: 1px solid #edf1f5; font-size: .75rem; }.live-details dt { color: var(--slate-500); }.live-details dd { margin: 0; font-weight: 700; text-align: right; }.ranking-note { margin: 0; padding: .7rem; border-radius: .5rem; background: #e7f7ff; color: #21617e; font-size: .73rem; }
+    .results-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin: .15rem 0 .75rem; }.results-heading .sidebar-label { color: var(--slate-500); }.results-heading h2 { margin: .1rem 0 0; font-size: 1.35rem; letter-spacing: -.03em; }.results-heading > span { color: var(--slate-500); font-size: .78rem; }
+    .rank-explainer { display: flex; align-items: center; gap: .65rem; margin-bottom: .75rem; padding: .7rem .85rem; border: 1px solid #dbeaf0; border-radius: .65rem; background: #f5fbfe; }.rank-explainer .active { flex: 0 0 auto; padding: .24rem .5rem; border-radius: .28rem; color: white; background: #087aaa; font-size: .72rem; font-weight: 800; }.rank-explainer p { margin: 0; color: #4b6371; font-size: .78rem; }
+    .reference-flight-list { display: grid; gap: .65rem; }.reference-flight-card { display: grid; grid-template-columns: 88px 140px minmax(165px, 1fr) 65px 108px 112px; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid #e0e8ef; border-radius: .65rem; background: #fff; box-shadow: 0 2px 8px rgba(22,54,78,.035); }.reference-flight-card.is-top-result { border-color: #5fc2e9; box-shadow: 0 5px 18px rgba(18,142,191,.12); }.flight-rank span { display: inline-block; padding: .22rem .4rem; border-radius: .2rem; color: #087aaa; background: #e5f7ff; font-size: .68rem; font-weight: 800; }.airline-cell strong, .price-cell strong { display: block; color: #13263b; font-size: .86rem; }.airline-cell small, .price-cell small { display: block; margin-top: .2rem; color: var(--slate-500); font-size: .67rem; }.flight-times { display: flex; align-items: center; justify-content: space-between; color: #13263b; font-size: .95rem; }.flight-times span { flex: 1; height: 1px; margin: 0 .45rem; background: #64c8ed; }.flight-times span::after { content: ""; display: block; width: 5px; height: 5px; margin-left: auto; border-radius: 50%; background: #087aaa; transform: translateY(-2px); }.flight-route { display: flex; justify-content: space-between; margin-top: .25rem; color: var(--slate-500); font-size: .67rem; }.flight-route em { font-style: normal; }.stops-cell { color: #3b8059; font-size: .73rem; font-weight: 700; }.price-cell { text-align: right; }.price-cell strong { font-size: 1.15rem; }.booking-cell { text-align: right; }.booking-cell form { margin: 0; }.booking-cell .book-flight-button { width: 100%; justify-content: center; border-radius: .38rem; padding: .5rem .45rem; font-size: .74rem; }
+    @@media (max-width: 960px) { .results-workspace { grid-template-columns: 1fr; }.live-details { display: none; }.reference-flight-card { grid-template-columns: 85px 1fr 1.25fr 105px; }.stops-cell { display: none; } }
+    @@media (max-width: 680px) { .search-hero { min-height: 255px; }.route-summary { align-items: flex-start; flex-direction: column; }.modify-search, .modify-search[open] { width: 100%; margin-left: 0; }.route-editor { position: static; width: 100%; }.reference-flight-card { grid-template-columns: 1fr auto; gap: .65rem; }.flight-rank, .airline-cell { grid-column: 1; }.journey-cell { grid-column: 1 / -1; grid-row: 2; }.price-cell { grid-column: 2; grid-row: 1; }.booking-cell { grid-column: 2; }.results-heading { align-items: start; }.rank-explainer { align-items: flex-start; flex-direction: column; } }
+</style>

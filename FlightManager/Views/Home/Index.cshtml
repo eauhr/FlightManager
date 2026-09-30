@@ -1,8 +1,154 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model AirScoutHomeViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Find your next flight";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="aerometric-layout">
+    <section class="hero-data-driven" aria-labelledby="home-hero-title">
+        <div class="hero-bg-wrapper">
+            <img class="hero-bg" src="~/images/hero-wing.jpg" asp-append-version="true" alt="Aircraft wing above clouds" fetchpriority="high" />
+            <div class="hero-scrim"></div>
+        </div>
+
+        <div class="hero-content">
+            <h1 id="home-hero-title" class="hero-title text-reveal">Ready for your<br class="hero-break" /> next trip?</h1>
+            <p class="hero-lede text-reveal">
+                Find a flight that fits your plans. Compare live fares and routes, then book directly with the provider.
+            </p>
+            <a class="hero-cta" href="#search">Find your flight <span aria-hidden="true">↗</span></a>
+        </div>
+    </section>
+
+    <section class="search-terminal" id="search" aria-labelledby="search-title">
+        <div class="terminal-header">
+            <h2 id="search-title" class="sr-only">Configure Flight Parameters</h2>
+        </div>
+
+        <form id="flightSearchForm" method="get" asp-action="Search" asp-controller="Home" class="flight-form" novalidate>
+            <input class="client-time-zone" type="hidden" name="ClientTimeZoneId" />
+            <div class="form-grid">
+                <div class="field-group">
+                    <label class="field-label" for="originDisplay">From</label>
+                    <div class="autocomplete-wrapper">
+                        <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8M5 15l7-7 7 7" /></svg>
+                        <input id="originDisplay" type="text" class="form-control" autocomplete="off" value="@Model.Request.Origin" placeholder="Choose a city or airport" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="originSuggestions" />
+                        <input id="origin" type="hidden" name="Origin" value="@Model.Request.Origin" />
+                        <div id="originSuggestions" class="suggestions-dropdown" role="listbox"></div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="destinationDisplay">To</label>
+                    <div class="autocomplete-wrapper">
+                        <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v14M5 9l7 7 7-7" /></svg>
+                        <input id="destinationDisplay" type="text" class="form-control" autocomplete="off" value="@Model.Request.Destination" placeholder="Choose a city or airport" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destinationSuggestions" />
+                        <input id="destination" type="hidden" name="Destination" value="@Model.Request.Destination" />
+                        <div id="destinationSuggestions" class="suggestions-dropdown" role="listbox"></div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="DepartDate">Outbound</label>
+                    <input id="DepartDate" type="date" class="form-control" name="DepartDate" data-traveler-date data-default-local="true" min="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" value="@Model.Request.DepartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" required />
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="ReturnDate">Return <span class="label-optional">Optional</span></label>
+                    <input id="ReturnDate" type="date" class="form-control" name="ReturnDate" data-return-date min="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" value="@(Model.Request.ReturnDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" />
+                </div>
+            </div>
+
+            <div class="form-footer">
+                <div class="field-group inline-group">
+                    <label class="field-label" for="Passengers">Passengers</label>
+                    <input id="Passengers" type="number" class="form-control compact-num" name="Passengers" min="1" max="9" value="@Model.Request.Passengers" required />
+                </div>
+
+                <div class="ranking-control">
+                    <span class="field-label">Ranking Priority</span>
+                    <div class="priority-selector" role="radiogroup" aria-label="Ranking Priority">
+                        @foreach (AirScoutPriority priority in Enum.GetValues<AirScoutPriority>())
+                        {
+                            <label class="priority-chip">
+                                <input type="radio" name="Priority" value="@priority" checked="@(Model.Request.Priority == priority ? "checked" : null)" class="sr-only" />
+                                <span class="chip-text">@(priority == AirScoutPriority.BestValue ? "Best Value" : priority)</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" aria-live="polite">
+                    <span class="btn-text">Search flights</span>
+                    <span class="btn-loading" hidden>
+                        <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                        Polling...
+                    </span>
+                </button>
+            </div>
+
+            <div id="searchValidation" class="validation-banner" role="alert" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                Missing routing data. Please select valid origin and destination airports.
+            </div>
+        </form>
+    </section>
+
+    <section class="data-integrity faq-section" aria-labelledby="integrity-title">
+        <header class="integrity-header">
+            <p class="section-eyebrow">Quick answers</p>
+            <h2 id="integrity-title">Frequently asked questions</h2>
+            <p>Everything you need to know about searching, comparing, and booking flights.</p>
+        </header>
+
+        <div class="faq-list">
+            <details class="faq-item">
+                <summary>Where do flight prices and options come from?</summary>
+                <p>Searches retrieve current flight options from our flight search provider. Availability and prices can change before you book.</p>
+            </details>
+            <details class="faq-item">
+                <summary>How are flights ranked?</summary>
+                <p>Choose Cheapest, Best Value, or Premium. Best Value weighs fare, travel time, and stops; you can change the ranking from your results.</p>
+            </details>
+            <details class="faq-item">
+                <summary>Where do I complete my booking?</summary>
+                <p>Select a flight to continue to the booking provider. The provider handles availability, passenger details, and payment.</p>
+            </details>
+        </div>
+    </section>
+
+    <section class="provider-strip" aria-label="Flight and aviation data providers">
+        <p>Trusted aviation data from</p>
+        <div><strong>Google Flights</strong><span>·</span><strong>OpenSky Network</strong></div>
+        <a asp-controller="Home" asp-action="Privacy">Learn how data is used <span aria-hidden="true">↗</span></a>
+    </section>
 </div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('flightSearchForm');
+        const validationBanner = document.getElementById('searchValidation');
+        if (!form || !validationBanner) return;
+
+        form.addEventListener('submit', (event) => {
+            const origin = document.getElementById('origin')?.value;
+            const destination = document.getElementById('destination')?.value;
+
+            if (!origin || !destination) {
+                event.preventDefault();
+                validationBanner.hidden = false;
+                return;
+            }
+
+            validationBanner.hidden = true;
+            const button = form.querySelector('.btn-primary');
+            button?.setAttribute('aria-busy', 'true');
+            const buttonText = button?.querySelector('.btn-text');
+            const loading = button?.querySelector('.btn-loading');
+            if (buttonText) buttonText.hidden = true;
+            if (loading) loading.hidden = false;
+        });
+    });
+</script>

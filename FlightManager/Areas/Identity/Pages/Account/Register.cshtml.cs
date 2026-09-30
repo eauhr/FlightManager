@@ -76,9 +76,23 @@ namespace FlightManager.Areas.Identity.Pages.Account
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
             [Required]
+            public string FirstName { get; set; }
+
+            [Required]
+            public string LastName { get; set; }
+
+            [Required]
+            [StringLength(10, MinimumLength = 10, ErrorMessage = "EGN must be exactly 10 digits.")]
+            public string EGN { get; set; }
+
+            [Required]
+            public string Address { get; set; }
+
+            [Required]
             [EmailAddress]
             [Display(Name = "Email")]
             public string Email { get; set; }
+
 
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -117,6 +131,11 @@ namespace FlightManager.Areas.Identity.Pages.Account
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+               user.FirstName = Input.FirstName;
+                user.LastName = Input.LastName;
+                user.EGN = Input.EGN;
+                user.Address = Input.Address;
+
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
                 if (result.Succeeded)

@@ -38,18 +38,14 @@ namespace FlightManager.Controllers
         {
             if (string.IsNullOrEmpty(controller.User.Identity.Name))
             {
-                HelperController.AddError("Authentication", "The user is not logged yet!");
-                throw new ArgumentNullException("User is not logged!");
+                throw new InvalidOperationException("User is not logged in.");
             }
-            string username = controller.User.Identity.Name;
-            User user = await userManager.FindByNameAsync(username);
+            User user = await userManager.FindByNameAsync(controller.User.Identity.Name);
+
             if (user == null)
-            {
-                string message = "There is no user with that name!";
-                userManager.Logger.Log(LogLevel.Error, message);
-                HelperController.AddError("Argument", message);
-                throw new ArgumentException(message);
-            }
+                throw new InvalidOperationException(
+                    $"No user found with name '{controller.User.Identity.Name}'.");
+
             return user;
         }
     }

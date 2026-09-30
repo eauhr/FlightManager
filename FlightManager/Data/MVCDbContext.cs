@@ -31,11 +31,9 @@ namespace FlightManager.Data
                 e.Property(p => p.EGN).HasMaxLength(10);
                 e.Property(p => p.Type).HasConversion<string>();
             });
-
         }
 
 
 
     }
- }
-
+}

@@ -1,55 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using FlightManager.Data;
+using FlightManager.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using FlightManager.Data;
-using FlightManager.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FlightManager.Controllers
 {
     public class ReservationsController : Controller
     {
-        private readonly MVCDbContext _context;
+        private readonly ReservationContext reservationContext;
+        private readonly FlightContext flightContext;
 
-        public ReservationsController(MVCDbContext context)
+        public ReservationsController(ReservationContext reservationContext, FlightContext flightContext)
         {
-            _context = context;
+            this.reservationContext = reservationContext;
+            this.flightContext = flightContext;
         }
 
         // GET: Reservations
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? email, int page = 1, int pageSize = 10)
         {
-            var mVCDbContext = _context.Reservations.Include(r => r.Flight);
-            return View(await mVCDbContext.ToListAsync());
+            IEnumerable<Reservation> reservations = await reservationContext.GetFilteredAsync(email, page, pageSize);
+            int total = await reservationContext.GetCountAsync(email);
+
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+            ViewBag.Email = email;
+
+            return View(reservations);
         }
 
         // GET: Reservations/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var reservation = await _context.Reservations
-                .Include(r => r.Flight)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (reservation == null)
-            {
-                return NotFound();
-            }
+            Reservation reservation = await reservationContext.ReadAsync(id.Value);
+            if (reservation == null) return NotFound();
 
             return View(reservation);
         }
 
         // GET: Reservations/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create(int flightId)
         {
-            ViewData["FlightId"] = new SelectList(_context.Flights, "Id", "ArrivalCity");
-            return View();
+            Flight flight = await flightContext.ReadAsync(flightId);
+            if (flight == null) return NotFound();
+
+            ViewBag.Flight = flight;
+            ViewBag.FlightId = flightId;
+            return View(new Reservation { FlightId = flightId });
         }
 
         // POST: Reservations/Create
@@ -57,85 +63,56 @@ namespace FlightManager.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ContactEmail,IsConfirmed,FlightId")] Reservation reservation)
+        public async Task<IActionResult> Create([Bind("Id,ContactEmail,IsConfirmed,FlightId")] Reservation reservation, List<Passenger> passengers)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(reservation);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                ViewBag.Flight = await flightContext.ReadAsync(reservation.FlightId);
+                return View(reservation);
             }
-            ViewData["FlightId"] = new SelectList(_context.Flights, "Id", "ArrivalCity", reservation.FlightId);
-            return View(reservation);
+
+            if (!passengers.Any())
+            {
+                ModelState.AddModelError("", "At least one passenger is required.");
+                ViewBag.Flight = await flightContext.ReadAsync(reservation.FlightId);
+                return View(reservation);
+            }
+
+            Flight flight = await flightContext.ReadAsync(reservation.FlightId);
+            if (flight == null) return NotFound();
+
+            reservation.IsConfirmed = true;
+            reservation.Passengers = passengers;
+
+            string? error = await reservationContext.TryCreateAsync(
+                reservation,
+                flight.PassengersCapacity,
+                flight.BusinessClassCapacity);
+
+            if (error != null)
+            {
+                ModelState.AddModelError("", error);
+                ViewBag.Flight = flight;
+                return View(reservation);
+            }
+
+            await SendConfirmationEmailAsync(reservation, flight);
+
+            TempData["Success"] = "Reservation created successfully.";
+            return RedirectToAction(nameof(Index));
         }
-
-        // GET: Reservations/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var reservation = await _context.Reservations.FindAsync(id);
-            if (reservation == null)
-            {
-                return NotFound();
-            }
-            ViewData["FlightId"] = new SelectList(_context.Flights, "Id", "ArrivalCity", reservation.FlightId);
-            return View(reservation);
-        }
-
-        // POST: Reservations/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ContactEmail,IsConfirmed,FlightId")] Reservation reservation)
-        {
-            if (id != reservation.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(reservation);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ReservationExists(reservation.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["FlightId"] = new SelectList(_context.Flights, "Id", "ArrivalCity", reservation.FlightId);
-            return View(reservation);
-        }
-
-        // GET: Reservations/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
+            if (id == null) 
                 return NotFound();
-            }
 
-            var reservation = await _context.Reservations
-                .Include(r => r.Flight)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (reservation == null)
+            Reservation reservation = await reservationContext.ReadAsync(id.Value);
+            if (reservation == null) return NotFound();
+
+            if (reservation.IsConfirmed)
             {
-                return NotFound();
+                TempData["Error"] = "Cannot delete a confirmed reservation.";
+                return RedirectToAction(nameof(Index));
             }
 
             return View(reservation);
@@ -143,22 +120,27 @@ namespace FlightManager.Controllers
 
         // POST: Reservations/Delete/5
         [HttpPost, ActionName("Delete")]
+
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var reservation = await _context.Reservations.FindAsync(id);
-            if (reservation != null)
+            Reservation reservation = await reservationContext.ReadAsync(id);
+            if (reservation == null) return NotFound();
+
+            if (reservation.IsConfirmed)
             {
-                _context.Reservations.Remove(reservation);
+                TempData["Error"] = "Cannot delete a confirmed reservation.";
+                return RedirectToAction(nameof(Index));
             }
 
-            await _context.SaveChangesAsync();
+            await reservationContext.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ReservationExists(int id)
+        private async Task SendConfirmationEmailAsync(Reservation reservation, Flight flight)
         {
-            return _context.Reservations.Any(e => e.Id == id);
+            await Task.CompletedTask;
         }
     }
 }
