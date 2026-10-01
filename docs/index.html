@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="view-transition" content="same-origin">
+    <title>Find your next flight</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/site.css">
+    <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+    <div class="page-aurora" aria-hidden="true"></div>
+    <header class="app-header" id="appHeader">
+        <nav class="app-nav" aria-label="Main navigation">
+            <ul class="nav-links" id="navPill">
+                <li><a href="#search">Flights</a></li>
+                <li><a href="#integrity-title">Offers</a></li>
+                <li><a href="#provider-strip">Insights</a></li>
+                <li class="nav-pill-cursor" aria-hidden="true"></li>
+            </ul>
+            <ul class="auth-links">
+                <li><a href="#search">Register</a></li>
+                <li><a href="#search">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="app-shell">
+        <main role="main">
+            <div class="aerometric-layout">
+                <section class="hero-data-driven" aria-labelledby="home-hero-title">
+                    <div class="hero-bg-wrapper">
+                        <img class="hero-bg" src="images/hero-wing.jpg" alt="Aircraft wing above clouds" fetchpriority="high">
+                        <div class="hero-scrim"></div>
+                    </div>
+                    <div class="hero-content">
+                        <h1 id="home-hero-title" class="hero-title text-reveal">Ready for your<br class="hero-break"> next trip?</h1>
+                        <p class="hero-lede text-reveal">Find a flight that fits your plans. Compare live fares and routes, then book directly with the provider.</p>
+                        <a class="hero-cta" href="#search">Find your flight <span aria-hidden="true">↗</span></a>
+                    </div>
+                </section>
+
+                <section class="search-terminal" id="search" aria-labelledby="search-title">
+                    <div class="terminal-header">
+                        <h2 id="search-title" class="sr-only">Configure Flight Parameters</h2>
+                    </div>
+                    <form id="flightSearchForm" class="flight-form" novalidate>
+                        <input class="client-time-zone" type="hidden" name="ClientTimeZoneId">
+                        <div class="form-grid">
+                            <div class="field-group">
+                                <label class="field-label" for="originDisplay">From</label>
+                                <div class="autocomplete-wrapper">
+                                    <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22V8M5 15l7-7 7 7"></path></svg>
+                                    <input id="originDisplay" type="text" class="form-control" autocomplete="off" placeholder="Choose a city or airport" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="originSuggestions">
+                                    <input id="origin" type="hidden" name="Origin">
+                                    <div id="originSuggestions" class="suggestions-dropdown" role="listbox"></div>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="destinationDisplay">To</label>
+                                <div class="autocomplete-wrapper">
+                                    <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v14M5 9l7 7 7-7"></path></svg>
+                                    <input id="destinationDisplay" type="text" class="form-control" autocomplete="off" placeholder="Choose a city or airport" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destinationSuggestions">
+                                    <input id="destination" type="hidden" name="Destination">
+                                    <div id="destinationSuggestions" class="suggestions-dropdown" role="listbox"></div>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="DepartDate">Outbound</label>
+                                <input id="DepartDate" type="date" class="form-control" name="DepartDate" data-traveler-date data-default-local="true" required>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="ReturnDate">Return <span class="label-optional">Optional</span></label>
+                                <input id="ReturnDate" type="date" class="form-control" name="ReturnDate" data-return-date>
+                            </div>
+                        </div>
+                        <div class="form-footer">
+                            <div class="field-group inline-group">
+                                <label class="field-label" for="Passengers">Passengers</label>
+                                <input id="Passengers" type="number" class="form-control compact-num" name="Passengers" min="1" max="9" value="1" required>
+                            </div>
+                            <div class="ranking-control">
+                                <span class="field-label">Ranking Priority</span>
+                                <div class="priority-selector" role="radiogroup" aria-label="Ranking Priority">
+                                    <label class="priority-chip"><input type="radio" name="Priority" value="Cheapest" class="sr-only"><span class="chip-text">Cheapest</span></label>
+                                    <label class="priority-chip"><input type="radio" name="Priority" value="BestValue" checked class="sr-only"><span class="chip-text">Best Value</span></label>
+                                    <label class="priority-chip"><input type="radio" name="Priority" value="Premium" class="sr-only"><span class="chip-text">Premium</span></label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary"><span class="btn-text">Search flights</span></button>
+                        </div>
+                        <div id="searchValidation" class="validation-banner" role="status" hidden>Live airport suggestions and flight searches require the full C# application.</div>
+                    </form>
+                </section>
+
+                <section class="data-integrity faq-section" aria-labelledby="integrity-title">
+                    <header class="integrity-header">
+                        <p class="section-eyebrow">Quick answers</p>
+                        <h2 id="integrity-title">Frequently asked questions</h2>
+                        <p>Everything you need to know about searching, comparing, and booking flights.</p>
+                    </header>
+                    <div class="faq-list">
+                        <details class="faq-item">
+                            <summary>Where do flight prices and options come from?</summary>
+                            <p>Searches retrieve current flight options from our flight search provider. Availability and prices can change before you book.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>How are flights ranked?</summary>
+                            <p>Choose Cheapest, Best Value, or Premium. Best Value weighs fare, travel time, and stops; you can change the ranking from your results.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Where do I complete my booking?</summary>
+                            <p>Select a flight to continue to the booking provider. The provider handles availability, passenger details, and payment.</p>
+                        </details>
+                    </div>
+                </section>
+
+                <section class="provider-strip" id="provider-strip" aria-label="Flight and aviation data providers">
+                    <p>Trusted aviation data from</p>
+                    <div><strong>Google Flights</strong><span>·</span><strong>OpenSky Network</strong></div>
+                    <a href="#provider-strip">Learn how data is used <span aria-hidden="true">↗</span></a>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <footer class="app-footer">
+        <div class="footer-links">
+            <span>Aviation intelligence powered by real-time data.</span>
+            <div class="footer-legal"><a href="#provider-strip">Privacy</a><span>·</span><a href="https://opensky-network.org" target="_blank" rel="noopener">Data: OpenSky</a></div>
+        </div>
+    </footer>
+
+    <script src="js/site.js"></script>
+</body>
+</html>
