@@ -27,8 +27,6 @@ Compare flight options, shape the results around your priorities, and continue t
 - **SerpApi** for flight search and airport lookup
 - **OpenSky Network** for aviation activity data
 
-This repository is an ASP.NET Core application; it does not use React or Vite.
-
 ## Run locally
 
 ### Requirements
@@ -82,7 +80,3 @@ FlightManager/
 ├── Views/                 Razor views
 └── wwwroot/               CSS, JavaScript, images, and static libraries
 ```
-
-## License
-
-This is a portfolio project. No open-source license is currently granted; contact the author before reusing or redistributing the code.
